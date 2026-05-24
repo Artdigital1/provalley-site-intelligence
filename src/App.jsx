@@ -5,32 +5,42 @@ import Overview from './components/Overview'
 import SearchPerf from './components/SearchPerf'
 import CoreWebVitals from './components/CoreWebVitals'
 import SiteAudit from './components/SiteAudit'
-import { MOCK_DATA } from './data'
+import { SITES, MOCK_DATA } from './data'
 
 const TABS = ['Overview', 'Search Performance', 'Core Web Vitals', 'Site Audit']
+const hasPsiKey = !!import.meta.env.VITE_PSI_KEY
 
 export default function App() {
   const [activeSite, setActiveSite] = useState('kmg')
   const [activeTab, setActiveTab] = useState('Overview')
+
+  const site = SITES.find(s => s.id === activeSite)
   const data = MOCK_DATA[activeSite]
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <NavBar activeSite={activeSite} onSiteChange={(id) => { setActiveSite(id); setActiveTab('Overview') }} />
+      <NavBar
+        activeSite={activeSite}
+        onSiteChange={(id) => { setActiveSite(id); setActiveTab('Overview') }}
+      />
       <div className="max-w-7xl mx-auto px-6 py-6">
         <TabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="mt-6">
-          {activeTab === 'Overview'            && <Overview data={data.overview} />}
-          {activeTab === 'Search Performance'  && <SearchPerf data={data.searchPerf} />}
-          {activeTab === 'Core Web Vitals'     && <CoreWebVitals data={data.cwv} />}
-          {activeTab === 'Site Audit'          && <SiteAudit data={data.audit} />}
+          {activeTab === 'Overview'           && <Overview data={data.overview} />}
+          {activeTab === 'Search Performance' && <SearchPerf data={data.searchPerf} />}
+          {activeTab === 'Core Web Vitals'    && <CoreWebVitals mockData={data.cwv} siteUrl={site.url} />}
+          {activeTab === 'Site Audit'         && <SiteAudit data={data.audit} siteUrl={site.url} />}
         </div>
       </div>
 
-      {/* Phase label */}
+      {/* Phase badge */}
       <div className="fixed bottom-4 right-4">
-        <span className="text-xs text-slate-600 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full">
-          Phase 1 · Mock data
+        <span className={`text-xs px-3 py-1.5 rounded-full border ${
+          hasPsiKey
+            ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/20'
+            : 'text-slate-600 bg-slate-900 border-slate-800'
+        }`}>
+          {hasPsiKey ? 'Phase 2 · Live CWV' : 'Phase 1 · Mock data'}
         </span>
       </div>
     </div>
