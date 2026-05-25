@@ -33,32 +33,12 @@ function SkeletonCard() {
   return <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 h-28 animate-pulse" />
 }
 
-export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
-  const [range,     setRange]     = useState(28)
-  const [ga4Data,   setGa4Data]   = useState(null)
-  const [ga4Error,  setGa4Error]  = useState(null)
-  const [ga4Load,   setGa4Load]   = useState(false)
-  const [gscData,   setGscData]   = useState(null)
-  const [gscError,  setGscError]  = useState(null)
-  const [gscLoad,   setGscLoad]   = useState(false)
+export default function Overview({ data: mock, siteUrl }) {
+  const [range,    setRange]    = useState(28)
+  const [gscData,  setGscData]  = useState(null)
+  const [gscError, setGscError] = useState(null)
+  const [gscLoad,  setGscLoad]  = useState(false)
 
-  // GA4 fetch
-  useEffect(() => {
-    if (!ga4PropertyId) { setGa4Data(null); return }
-    setGa4Load(true)
-    setGa4Error(null)
-    setGa4Data(null)
-    fetch(`/api/ga4?propertyId=${encodeURIComponent(ga4PropertyId)}&range=${range}`)
-      .then(r => r.json())
-      .then(json => {
-        if (json.error) throw new Error(json.error)
-        setGa4Data(json)
-      })
-      .catch(err => setGa4Error(err.message))
-      .finally(() => setGa4Load(false))
-  }, [ga4PropertyId, range])
-
-  // GSC aggregate fetch
   useEffect(() => {
     if (!siteUrl) return
     setGscLoad(true)
@@ -77,30 +57,14 @@ export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
   const periodLabel = `${range} days`
   const cwv = CWV_LABEL(mock.cwvScore.value)
 
-  const ga4Live  = !!ga4Data
   const gscLive  = !!gscData
-  const ga4Badge = ga4Live
-    ? { text: 'Live · GA4', cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-500/20' }
-    : ga4PropertyId
-      ? { text: ga4Error?.includes('503') || ga4Error?.includes('not configured') ? 'Mock — add creds' : ga4Error ? 'Error · Mock' : 'Loading…', cls: 'text-slate-500 bg-slate-800 border-slate-700' }
-      : { text: 'Mock — set ga4PropertyId', cls: 'text-slate-600 bg-slate-900 border-slate-800' }
   const gscBadge = gscLive
     ? { text: 'Live · GSC', cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-500/20' }
-    : { text: gscError ? 'Error · Mock' : 'Mock data', cls: 'text-slate-500 bg-slate-800 border-slate-700' }
+    : { text: gscError ? 'Error' : 'Loading…', cls: 'text-slate-500 bg-slate-800 border-slate-700' }
 
-  // Formatted values for GA4 section
-  const fmtN = n => n?.toLocaleString() ?? '—'
-  const sessions    = ga4Live ? fmtN(ga4Data.sessions)    : mock.sessions.value
-  const users       = ga4Live ? fmtN(ga4Data.users)       : mock.users.value
-  const conversions = ga4Live ? fmtN(ga4Data.conversions) : mock.conversions.value
-  const sessChange  = ga4Live ? ga4Data.changes?.sessions    : mock.sessions.change
-  const userChange  = ga4Live ? ga4Data.changes?.users       : mock.users.change
-  const convChange  = ga4Live ? ga4Data.changes?.conversions : mock.conversions.change
-
-  // Formatted values for GSC section
-  const clicks      = gscLive ? fmtN(gscData.clicks)      : mock.clicks.value
-  const impressions = gscLive ? fmtN(gscData.impressions)  : mock.impressions.value
-  const avgPosition = gscLive ? String(gscData.avgPosition) : mock.avgPosition.value
+  const clicks      = gscLive ? gscData.clicks.toLocaleString()      : mock.clicks.value
+  const impressions = gscLive ? gscData.impressions.toLocaleString()  : mock.impressions.value
+  const avgPosition = gscLive ? String(gscData.avgPosition)           : mock.avgPosition.value
 
   return (
     <div className="space-y-6">
@@ -110,7 +74,6 @@ export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
           <h2 className="text-slate-100 font-semibold text-lg">Overview</h2>
           <p className="text-slate-500 text-sm mt-0.5">Last {range} days</p>
         </div>
-        {/* Date range toggle */}
         <div className="flex rounded-lg overflow-hidden border border-slate-700 text-xs">
           {RANGES.map(r => (
             <button
@@ -128,31 +91,34 @@ export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
         </div>
       </div>
 
-      {/* GA4 section */}
+      {/* Analytics — Phase 4 placeholder */}
       <div className="space-y-3">
-        <SectionLabel title="Analytics" badge={ga4Badge} />
-        {ga4Error && !ga4Error.includes('not configured') && !ga4Error.includes('503') && (
-          <div className="text-xs text-red-400 bg-red-400/10 border border-red-500/20 rounded-lg px-3 py-2">
-            GA4: {ga4Error}
+        <SectionLabel title="Analytics" badge={{ text: 'Phase 4', cls: 'text-slate-500 bg-slate-800 border-slate-700' }} />
+        <div className="bg-slate-900 border border-slate-800 rounded-xl px-6 py-5 flex items-center gap-5">
+          <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center text-xl flex-shrink-0">
+            📊
           </div>
-        )}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          {ga4Load ? (
-            [0,1,2].map(i => <SkeletonCard key={i} />)
-          ) : (
-            <>
-              <StatCard label="Sessions"    value={sessions}    change={sessChange} period={periodLabel} icon="👥" iconBg="bg-blue-500/10"   />
-              <StatCard label="Users"       value={users}       change={userChange} period={periodLabel} icon="🧑" iconBg="bg-indigo-500/10" />
-              <StatCard label="Conversions" value={conversions} change={convChange} period={periodLabel} icon="🎯" iconBg="bg-violet-500/10" />
-            </>
-          )}
+          <div className="min-w-0">
+            <div className="text-slate-300 text-sm font-medium">GA4 Analytics</div>
+            <div className="text-slate-500 text-xs mt-0.5">
+              Sessions, users, and conversions — GA4 requires property-level access. Coming in Phase 4.
+            </div>
+          </div>
+          <a
+            href="https://analytics.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto flex-shrink-0 text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors"
+          >
+            Open GA4 ↗
+          </a>
         </div>
       </div>
 
       {/* GSC section */}
       <div className="space-y-3">
         <SectionLabel title="Search Console" badge={gscBadge} />
-        {gscError && !gscError.includes('not configured') && !gscError.includes('503') && (
+        {gscError && (
           <div className="text-xs text-red-400 bg-red-400/10 border border-red-500/20 rounded-lg px-3 py-2">
             GSC: {gscError}
           </div>
@@ -162,7 +128,7 @@ export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
             [0,1,2,3].map(i => <SkeletonCard key={i} />)
           ) : (
             <>
-              <StatCard label="Clicks"       value={clicks}      change={gscLive ? null : mock.clicks.change}      period={periodLabel} icon="🖱️" iconBg="bg-cyan-500/10"   />
+              <StatCard label="Clicks"       value={clicks}       change={gscLive ? null : mock.clicks.change}      period={periodLabel} icon="🖱️" iconBg="bg-cyan-500/10"   />
               <StatCard label="Impressions"  value={impressions}  change={gscLive ? null : mock.impressions.change}  period={periodLabel} icon="👁️" iconBg="bg-teal-500/10"  />
               <StatCard label="Avg Position" value={avgPosition}  change={gscLive ? null : mock.avgPosition.change}  period={periodLabel} lowerIsBetter icon="📍" iconBg="bg-amber-500/10" />
               {/* CWV score */}
@@ -193,10 +159,9 @@ export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
             <div>
               <div className="text-slate-300 text-sm font-medium">Traffic</div>
               <div className="text-slate-500 text-xs mt-0.5 leading-relaxed">
-                {sessions} sessions · {users} users.
-                {ga4Live && ga4Data.changes.sessions != null
-                  ? ` Sessions ${ga4Data.changes.sessions > 0 ? 'up' : 'down'} ${Math.abs(ga4Data.changes.sessions)}% vs. prior ${range} days.`
-                  : ` Impressions ${gscLive ? '' : mock.impressions.change > 0 ? 'growing' : 'declining'} — organic visibility ${gscLive ? 'tracked live' : 'expanding'}.`}
+                {gscLive
+                  ? `${clicks} clicks · ${impressions} impressions from organic search in the last ${range} days.`
+                  : `Organic search data loading. Session-level analytics coming in Phase 4.`}
               </div>
             </div>
           </div>
