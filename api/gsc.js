@@ -1,19 +1,32 @@
 // GET /api/gsc?siteUrl=https://...&range=28[&aggregate=true][&limit=25]
-// Requires server-side env vars (no VITE_ prefix):
-//   GOOGLE_CLIENT_EMAIL — service account email
-//   GOOGLE_PRIVATE_KEY  — service account private key (literal \n in env)
-import { GoogleAuth } from 'google-auth-library'
+// Credentials — set ONE of:
+//   GOOGLE_SERVICE_ACCOUNT_B64  — entire service account JSON, base64-encoded (preferred)
+//   GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY  — legacy individual vars
+import { google } from 'googleapis'
+
+function getCredentials() {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
+    const sa = JSON.parse(
+      Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8')
+    )
+    return { client_email: sa.client_email, private_key: sa.private_key }
+  }
+  return {
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+    private_key: (process.env.GOOGLE_PRIVATE_KEY ?? '')
+      .replace(/^["']|["']$/g, '')
+      .replace(/\\n/g, '\n'),
+  }
+}
 
 function makeAuth() {
-  return new GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: (process.env.GOOGLE_PRIVATE_KEY ?? '')
-        .replace(/^["']|["']$/g, '')
-        .replace(/\\n/g, '\n'),
-    },
-    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
-  })
+  const { client_email, private_key } = getCredentials()
+  return new google.auth.JWT(
+    client_email,
+    null,
+    private_key,
+    ['https://www.googleapis.com/auth/webmasters.readonly']
+  )
 }
 
 function dateRange(days) {
@@ -33,7 +46,9 @@ export default async function handler(req, res) {
   const { siteUrl, range = '28', aggregate, limit = '25' } = req.query ?? {}
   if (!siteUrl) return res.status(400).json({ error: '`siteUrl` required' })
 
-  if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+  const hasCreds = process.env.GOOGLE_SERVICE_ACCOUNT_B64 ||
+    (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY)
+  if (!hasCreds) {
     return res.status(503).json({ error: 'GSC credentials not configured' })
   }
 
@@ -41,8 +56,9 @@ export default async function handler(req, res) {
   const isAggregate = aggregate === 'true' || aggregate === '1'
 
   try {
-    const client = await makeAuth().getClient()
-    const { token } = await client.getAccessToken()
+    const auth = makeAuth()
+    await auth.authorize()
+    const { token } = await auth.getAccessToken()
 
     const body = {
       startDate,

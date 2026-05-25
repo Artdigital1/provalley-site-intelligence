@@ -1,18 +1,34 @@
 // GET /api/ga4?propertyId=123456789&range=28
 // Returns sessions, users, conversions with period-over-period % change.
-// Requires same service account as GSC:
-//   GOOGLE_CLIENT_EMAIL — service account email
-//   GOOGLE_PRIVATE_KEY  — service account private key (literal \n in env)
+//
+// Credentials — set ONE of:
+//   GOOGLE_SERVICE_ACCOUNT_B64  — entire service account JSON, base64-encoded (preferred)
+//     Generate: base64 -w0 service-account.json   (Linux/Mac)
+//               [Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))  (PowerShell)
+//   GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY  — legacy individual vars
 import { google } from 'googleapis'
 
+function getCredentials() {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
+    const sa = JSON.parse(
+      Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8')
+    )
+    return { client_email: sa.client_email, private_key: sa.private_key }
+  }
+  return {
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+    private_key: (process.env.GOOGLE_PRIVATE_KEY ?? '')
+      .replace(/^["']|["']$/g, '')
+      .replace(/\\n/g, '\n'),
+  }
+}
+
 function makeAuth() {
-  const privateKey = (process.env.GOOGLE_PRIVATE_KEY ?? '')
-    .replace(/^["']|["']$/g, '')
-    .replace(/\\n/g, '\n')
+  const { client_email, private_key } = getCredentials()
   return new google.auth.JWT(
-    process.env.GOOGLE_CLIENT_EMAIL,
+    client_email,
     null,
-    privateKey,
+    private_key,
     ['https://www.googleapis.com/auth/analytics.readonly']
   )
 }
