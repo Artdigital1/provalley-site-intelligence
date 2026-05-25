@@ -5,21 +5,21 @@ export const SITES = [
     url: 'https://kmgfinejewelers.com',
     ga4: 'G-3E16GFRNJF',
     // Numeric property ID for GA4 Data API — find in GA4 Admin → Property Settings → Property ID
-    ga4PropertyId: null,
+    ga4PropertyId: '535570624',
   },
   {
     id: 'fhtv',
     name: 'Fishing Hunting TV',
     url: 'https://fishinghuntingtv.com',
     ga4: null,
-    ga4PropertyId: null,
+    ga4PropertyId: '422471533',
   },
   {
     id: 'provalley',
     name: 'ProValley Digital',
     url: 'https://provalleydigitalmarketing.com',
     ga4: null,
-    ga4PropertyId: null,
+    ga4PropertyId: '440841647',
   },
 ]
 
