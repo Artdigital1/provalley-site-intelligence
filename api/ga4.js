@@ -1,33 +1,19 @@
 // GET /api/ga4?propertyId=123456789&range=28
 // Returns sessions, users, conversions with period-over-period % change.
 //
-// Credentials — set ONE of:
-//   GOOGLE_SERVICE_ACCOUNT_B64  — entire service account JSON, base64-encoded (preferred)
-//     Generate: base64 -w0 service-account.json   (Linux/Mac)
-//               [Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))  (PowerShell)
-//   GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY  — legacy individual vars
-import { GoogleAuth } from 'google-auth-library'
-
-function getCredentials() {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
-    const sa = JSON.parse(
-      Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8')
-    )
-    return { client_email: sa.client_email, private_key: sa.private_key }
-  }
-  return {
-    client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: (process.env.GOOGLE_PRIVATE_KEY ?? '')
-      .replace(/^["']|["']$/g, '')
-      .replace(/\\n/g, '\n'),
-  }
-}
+// Credentials (Vercel env vars):
+//   GOOGLE_OAUTH_CLIENT_ID
+//   GOOGLE_OAUTH_CLIENT_SECRET
+//   GOOGLE_OAUTH_REFRESH_TOKEN  — generated once via scripts/get-refresh-token.mjs
+import { OAuth2Client } from 'google-auth-library'
 
 function makeAuth() {
-  return new GoogleAuth({
-    credentials: getCredentials(),
-    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
-  })
+  const client = new OAuth2Client(
+    process.env.GOOGLE_OAUTH_CLIENT_ID,
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+  )
+  client.setCredentials({ refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN })
+  return client
 }
 
 function getDateRanges(days) {
@@ -63,8 +49,9 @@ export default async function handler(req, res) {
   const { propertyId, range = '28' } = req.query ?? {}
   if (!propertyId) return res.status(400).json({ error: '`propertyId` required' })
 
-  const hasCreds = process.env.GOOGLE_SERVICE_ACCOUNT_B64 ||
-    (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY)
+  const hasCreds = process.env.GOOGLE_OAUTH_CLIENT_ID &&
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
+    process.env.GOOGLE_OAUTH_REFRESH_TOKEN
   if (!hasCreds) {
     return res.status(503).json({ error: 'GA4 credentials not configured' })
   }
@@ -72,7 +59,7 @@ export default async function handler(req, res) {
   const { current, comparison } = getDateRanges(parseInt(range))
 
   try {
-    const client = await makeAuth().getClient()
+    const client = makeAuth()
     const { token } = await client.getAccessToken()
 
     const apiRes = await fetch(
@@ -82,7 +69,6 @@ export default async function handler(req, res) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dateRanges: [current, comparison],
-          dimensions: [{ name: 'dateRange' }],
           metrics: [
             { name: 'sessions'    },
             { name: 'activeUsers' },
