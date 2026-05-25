@@ -6,7 +6,7 @@
 //     Generate: base64 -w0 service-account.json   (Linux/Mac)
 //               [Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))  (PowerShell)
 //   GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY  — legacy individual vars
-import { google } from 'googleapis'
+import { GoogleAuth } from 'google-auth-library'
 
 function getCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
@@ -24,13 +24,10 @@ function getCredentials() {
 }
 
 function makeAuth() {
-  const { client_email, private_key } = getCredentials()
-  return new google.auth.JWT(
-    client_email,
-    null,
-    private_key,
-    ['https://www.googleapis.com/auth/analytics.readonly']
-  )
+  return new GoogleAuth({
+    credentials: getCredentials(),
+    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
+  })
 }
 
 function getDateRanges(days) {
@@ -66,28 +63,38 @@ export default async function handler(req, res) {
   const { propertyId, range = '28' } = req.query ?? {}
   if (!propertyId) return res.status(400).json({ error: '`propertyId` required' })
 
-  if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+  const hasCreds = process.env.GOOGLE_SERVICE_ACCOUNT_B64 ||
+    (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY)
+  if (!hasCreds) {
     return res.status(503).json({ error: 'GA4 credentials not configured' })
   }
 
   const { current, comparison } = getDateRanges(parseInt(range))
 
   try {
-    const auth = makeAuth()
-    const analyticsdata = google.analyticsdata({ version: 'v1beta', auth })
+    const client = await makeAuth().getClient()
+    const { token } = await client.getAccessToken()
 
-    const { data } = await analyticsdata.properties.runReport({
-      property: `properties/${propertyId}`,
-      requestBody: {
-        dateRanges: [current, comparison],
-        dimensions: [{ name: 'dateRange' }],
-        metrics: [
-          { name: 'sessions'    },
-          { name: 'activeUsers' },
-          { name: 'conversions' },
-        ],
-      },
-    })
+    const apiRes = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateRanges: [current, comparison],
+          dimensions: [{ name: 'dateRange' }],
+          metrics: [
+            { name: 'sessions'    },
+            { name: 'activeUsers' },
+            { name: 'conversions' },
+          ],
+        }),
+        signal: AbortSignal.timeout(12000),
+      }
+    )
+
+    const data = await apiRes.json()
+    if (!apiRes.ok) throw new Error(data.error?.message ?? `GA4 ${apiRes.status}`)
 
     const rows = data.rows ?? []
     const find = name => rows.find(r => r.dimensionValues?.[0]?.value === name)

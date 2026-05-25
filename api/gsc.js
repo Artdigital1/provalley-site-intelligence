@@ -2,7 +2,7 @@
 // Credentials — set ONE of:
 //   GOOGLE_SERVICE_ACCOUNT_B64  — entire service account JSON, base64-encoded (preferred)
 //   GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY  — legacy individual vars
-import { google } from 'googleapis'
+import { GoogleAuth } from 'google-auth-library'
 
 function getCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
@@ -20,13 +20,10 @@ function getCredentials() {
 }
 
 function makeAuth() {
-  const { client_email, private_key } = getCredentials()
-  return new google.auth.JWT(
-    client_email,
-    null,
-    private_key,
-    ['https://www.googleapis.com/auth/webmasters.readonly']
-  )
+  return new GoogleAuth({
+    credentials: getCredentials(),
+    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
+  })
 }
 
 function dateRange(days) {
@@ -56,9 +53,8 @@ export default async function handler(req, res) {
   const isAggregate = aggregate === 'true' || aggregate === '1'
 
   try {
-    const auth = makeAuth()
-    await auth.authorize()
-    const { token } = await auth.getAccessToken()
+    const client = await makeAuth().getClient()
+    const { token } = await client.getAccessToken()
 
     const body = {
       startDate,
