@@ -3,18 +3,18 @@
 // Requires same service account as GSC:
 //   GOOGLE_CLIENT_EMAIL — service account email
 //   GOOGLE_PRIVATE_KEY  — service account private key (literal \n in env)
-import { GoogleAuth } from 'google-auth-library'
+import { google } from 'googleapis'
 
 function makeAuth() {
-  return new GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: (process.env.GOOGLE_PRIVATE_KEY ?? '')
-        .replace(/^["']|["']$/g, '')
-        .replace(/\\n/g, '\n'),
-    },
-    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
-  })
+  const privateKey = (process.env.GOOGLE_PRIVATE_KEY ?? '')
+    .replace(/^["']|["']$/g, '')
+    .replace(/\\n/g, '\n')
+  return new google.auth.JWT(
+    process.env.GOOGLE_CLIENT_EMAIL,
+    null,
+    privateKey,
+    ['https://www.googleapis.com/auth/analytics.readonly']
+  )
 }
 
 function getDateRanges(days) {
@@ -57,35 +57,25 @@ export default async function handler(req, res) {
   const { current, comparison } = getDateRanges(parseInt(range))
 
   try {
-    const client = await makeAuth().getClient()
-    const { token } = await client.getAccessToken()
+    const auth = makeAuth()
+    const analyticsdata = google.analyticsdata({ version: 'v1beta', auth })
 
-    const body = {
-      dateRanges: [current, comparison],
-      dimensions: [{ name: 'dateRange' }],
-      metrics: [
-        { name: 'sessions'     },
-        { name: 'activeUsers'  },
-        { name: 'conversions'  },
-      ],
-    }
+    const { data } = await analyticsdata.properties.runReport({
+      property: `properties/${propertyId}`,
+      requestBody: {
+        dateRanges: [current, comparison],
+        dimensions: [{ name: 'dateRange' }],
+        metrics: [
+          { name: 'sessions'    },
+          { name: 'activeUsers' },
+          { name: 'conversions' },
+        ],
+      },
+    })
 
-    const apiRes = await fetch(
-      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(12000),
-      }
-    )
-
-    const json = await apiRes.json()
-    if (!apiRes.ok) throw new Error(json.error?.message ?? `GA4 ${apiRes.status}`)
-
-    const rows  = json.rows ?? []
-    const find  = name => rows.find(r => r.dimensionValues?.[0]?.value === name)
-    const vals  = row => {
+    const rows = data.rows ?? []
+    const find = name => rows.find(r => r.dimensionValues?.[0]?.value === name)
+    const vals = row => {
       const v = row?.metricValues ?? []
       const n = i => Math.round(parseFloat(v[i]?.value ?? '0'))
       return { sessions: n(0), users: n(1), conversions: n(2) }
