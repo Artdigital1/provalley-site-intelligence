@@ -30,7 +30,7 @@ export default function App() {
           {activeTab === 'Search Performance'  && <SearchPerf data={data.searchPerf} siteUrl={site.url} />}
           {activeTab === 'Core Web Vitals'     && <CoreWebVitals mockData={data.cwv} siteUrl={site.psiUrl ?? site.url} />}
           {activeTab === 'Site Audit'          && <SiteAudit data={data.audit} siteUrl={site.url} />}
-          {activeTab === 'Crawler'             && <Crawler siteUrl={site.url} />}
+          {activeTab === 'Crawler'             && <Crawler siteUrl={site.crawlUrl ?? site.url} />}
         </div>
       </div>
 
