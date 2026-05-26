@@ -3,6 +3,7 @@ export const SITES = [
     id: 'kmg',
     name: 'KMG Fine Jewelers',
     url: 'sc-domain:kmgfinejewelers.com',
+    psiUrl: 'https://kmgfinejewelers.com',
     ga4: 'G-3E16GFRNJF',
     // Numeric property ID for GA4 Data API — find in GA4 Admin → Property Settings → Property ID
     ga4PropertyId: '535570624',

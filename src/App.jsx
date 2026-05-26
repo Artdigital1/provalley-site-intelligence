@@ -28,7 +28,7 @@ export default function App() {
         <div className="mt-6">
           {activeTab === 'Overview'            && <Overview data={data.overview} siteUrl={site.url} ga4PropertyId={site.ga4PropertyId} />}
           {activeTab === 'Search Performance'  && <SearchPerf data={data.searchPerf} siteUrl={site.url} />}
-          {activeTab === 'Core Web Vitals'     && <CoreWebVitals mockData={data.cwv} siteUrl={site.url} />}
+          {activeTab === 'Core Web Vitals'     && <CoreWebVitals mockData={data.cwv} siteUrl={site.psiUrl ?? site.url} />}
           {activeTab === 'Site Audit'          && <SiteAudit data={data.audit} siteUrl={site.url} />}
           {activeTab === 'Crawler'             && <Crawler siteUrl={site.url} />}
         </div>
