@@ -1,5 +1,6 @@
 // Vercel serverless function — GET /api/audit?url=https://example.com
 // Fetches the page, extracts links, probes each with HEAD, returns broken ones.
+import { allowUrl, deny } from './_allow.js'
 
 const SKIP_DOMAINS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'accounts.google.com']
 const MAX_LINKS = 40
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
   const { url } = req.query ?? {}
+  if (!allowUrl(url)) return deny(res)
   if (!url) return res.status(400).json({ error: '`url` query param required' })
 
   let parsedBase

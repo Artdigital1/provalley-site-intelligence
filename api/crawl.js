@@ -2,6 +2,7 @@
 // BFS crawl up to `limit` pages of the same origin.
 // Returns per-page: title, metaDesc, h1, canonical, status, wordCount, size, issues.
 import { parse } from 'node-html-parser'
+import { allowUrl, deny } from './_allow.js'
 
 export const config = { maxDuration: 60 }
 
@@ -104,6 +105,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
   const { siteUrl, limit = '50' } = req.query ?? {}
+  if (!allowUrl(siteUrl)) return deny(res)
   if (!siteUrl) return res.status(400).json({ error: '`siteUrl` required' })
 
   const maxPages = Math.min(parseInt(limit) || 50, 100)

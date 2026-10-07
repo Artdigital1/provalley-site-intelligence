@@ -3,6 +3,7 @@
 //   GOOGLE_SERVICE_ACCOUNT_B64  — entire service account JSON, base64-encoded (preferred)
 //   GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY  — legacy individual vars
 import { GoogleAuth } from 'google-auth-library'
+import { allowGsc, deny } from './_allow.js'
 
 function getCredentials() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
@@ -41,6 +42,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
   const { siteUrl, range = '28', aggregate, limit = '25' } = req.query ?? {}
+  if (!allowGsc(siteUrl)) return deny(res)
   if (!siteUrl) return res.status(400).json({ error: '`siteUrl` required' })
 
   const hasCreds = process.env.GOOGLE_SERVICE_ACCOUNT_B64 ||

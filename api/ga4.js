@@ -6,6 +6,7 @@
 //   GOOGLE_OAUTH_CLIENT_SECRET
 //   GOOGLE_OAUTH_REFRESH_TOKEN  — generated once via scripts/get-refresh-token.mjs
 import { OAuth2Client } from 'google-auth-library'
+import { allowGa4, deny } from './_allow.js'
 
 function makeAuth() {
   const client = new OAuth2Client(
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
   const { propertyId, range = '28' } = req.query ?? {}
+  if (!allowGa4(propertyId)) return deny(res)
   if (!propertyId) return res.status(400).json({ error: '`propertyId` required' })
 
   const hasCreds = process.env.GOOGLE_OAUTH_CLIENT_ID &&
