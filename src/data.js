@@ -23,6 +23,17 @@ export const SITES = [
     ga4: null,
     ga4PropertyId: '440841647',
   },
+  {
+    id: 'spr',
+    name: 'Select Properties RGV',
+    // Domain property covers apex + www + listings subdomain. Service account must be added as a user in GSC.
+    url: 'sc-domain:selectpropertiesrgv.com',
+    psiUrl: 'https://selectpropertiesrgv.com',
+    crawlUrl: 'https://selectpropertiesrgv.com',
+    ga4: null,
+    // TODO(Artie): GA4 Admin → Property Settings → numeric Property ID. Null = GA4 cards show "—".
+    ga4PropertyId: null,
+  },
 ]
 
 export const MOCK_DATA = {
@@ -95,6 +106,34 @@ export const MOCK_DATA = {
         { type: 'warning', label: 'Missing alt text',         count: 14, detail: '14 images missing alt attributes' },
         { type: 'warning', label: 'Large uncompressed images',count: 8,  detail: '8 images slowing load time' },
         { type: 'warning', label: 'No sitemap submitted',     count: 1,  detail: 'XML sitemap not found in Search Console' },
+      ],
+    },
+  },
+
+  // No invented numbers: shows "—" until live GSC/GA4/PSI data loads.
+  spr: {
+    overview: {
+      sessions:     { value: '—', change: null },
+      users:        { value: '—', change: null },
+      conversions:  { value: '—', change: null },
+      clicks:       { value: '—', change: null },
+      impressions:  { value: '—', change: null },
+      avgPosition:  { value: '—', change: 0, lowerIsBetter: true },
+      cwvScore:     { value: null, change: null },
+    },
+    searchPerf: [],
+    cwv: {
+      lcp:  { value: '—', status: 'needs-improvement', label: 'Largest Contentful Paint', threshold: '< 2.5s good' },
+      cls:  { value: '—', status: 'needs-improvement', label: 'Cumulative Layout Shift',   threshold: '< 0.1 good'  },
+      inp:  { value: '—', status: 'needs-improvement', label: 'Interaction to Next Paint', threshold: '< 200ms good'},
+      fcp:  { value: '—', status: 'needs-improvement', label: 'First Contentful Paint',    threshold: '< 1.8s good' },
+      ttfb: { value: '—', status: 'needs-improvement', label: 'Time to First Byte',        threshold: '< 800ms good'},
+    },
+    audit: {
+      lastScan: 'Not yet scanned',
+      score: null,
+      issues: [
+        { type: 'info', label: 'Migration in progress', count: 1, detail: 'WordPress → Next.js/Vercel. Run Site Audit after cutover.' },
       ],
     },
   },

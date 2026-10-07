@@ -7,6 +7,7 @@ const ISSUE_STYLE = {
 }
 
 const SCORE_COLOR = (s) => {
+  if (s == null) return { text: 'text-slate-400', ring: 'stroke-slate-600', label: 'Not scanned' }
   if (s >= 90) return { text: 'text-emerald-400', ring: 'stroke-emerald-400', label: 'Excellent' }
   if (s >= 70) return { text: 'text-amber-400',   ring: 'stroke-amber-400',   label: 'Good'      }
   return               { text: 'text-red-400',     ring: 'stroke-red-400',     label: 'Needs Work' }
@@ -16,7 +17,7 @@ function ScoreRing({ score }) {
   const { text, ring, label } = SCORE_COLOR(score)
   const r    = 44
   const circ = 2 * Math.PI * r
-  const dash = (score / 100) * circ
+  const dash = ((score ?? 0) / 100) * circ
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -32,7 +33,7 @@ function ScoreRing({ score }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-3xl font-bold leading-none ${text}`}>{score}</span>
+          <span className={`text-3xl font-bold leading-none ${text}`}>{score ?? '—'}</span>
           <span className="text-slate-600 text-xs mt-0.5">/ 100</span>
         </div>
       </div>

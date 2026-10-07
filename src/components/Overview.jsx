@@ -8,11 +8,13 @@ const RANGES = [
 ]
 
 const CWV_LABEL = (score) => {
+  if (score == null) return { text: 'No data', cls: 'text-slate-400 bg-slate-400/10' }
   if (score >= 90) return { text: 'Good',       cls: 'text-emerald-400 bg-emerald-400/10' }
   if (score >= 50) return { text: 'Needs Work', cls: 'text-amber-400  bg-amber-400/10'  }
   return                  { text: 'Poor',        cls: 'text-red-400    bg-red-400/10'    }
 }
 const CWV_COLOR = (score) => {
+  if (score == null) return 'text-slate-400'
   if (score >= 90) return 'text-emerald-400'
   if (score >= 50) return 'text-amber-400'
   return 'text-red-400'
@@ -179,7 +181,7 @@ export default function Overview({ data: mock, siteUrl, ga4PropertyId }) {
                 </div>
                 <div>
                   <div className={`text-2xl font-bold leading-none ${CWV_COLOR(mock.cwvScore.value)}`}>
-                    {mock.cwvScore.value}<span className="text-base text-slate-600 font-normal ml-1">/100</span>
+                    {mock.cwvScore.value ?? '—'}<span className="text-base text-slate-600 font-normal ml-1">/100</span>
                   </div>
                   <div className="text-sm text-slate-500 mt-1.5">CWV Score</div>
                   <div className="text-xs text-slate-700 mt-1">PageSpeed mobile</div>
